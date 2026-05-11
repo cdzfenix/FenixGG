@@ -33,27 +33,9 @@ body {
 }
 
 /* SCANLINES */
-.scanlines {
-  position: fixed; inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.15) 2px,
-    rgba(0,0,0,0.15) 4px
-  );
-  pointer-events: none;
-  z-index: 1000;
-}
+.scanlines { display: none; }
 
-/* NOISE */
-.noise {
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 999;
-  opacity: 0.4;
-}
+.noise { display: none; }
 
 /* HEADER */
 .header {
@@ -69,7 +51,7 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
-  height: 70px;
+  height: 80px;
   display: flex;
   align-items: center;
   gap: 2rem;
@@ -752,10 +734,11 @@ body {
 
 /* LOGO IMAGE */
 .logo-img {
-  width: 38px;
-  height: 38px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(255, 120, 0, 0.5));
 }
 
 .logo {
