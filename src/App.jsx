@@ -46,13 +46,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="scanlines" />
-      <div className="noise" />
+      {/* FONDO WATERMARK */}
+      <div className="bg-watermark" />
 
       <header className="header">
         <div className="header-inner">
-          <div className={`logo ${glitch ? "glitch" : ""}`} data-text="FENIXGG">
-            <img src="/logo.png" alt="FenixGG" className="logo-img" />
+          <div className={`logo-text ${glitch ? "glitch" : ""}`} data-text="FENIXGG">
             FENIXGG
           </div>
           <nav className="nav">
@@ -82,6 +81,16 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* HERO BANNER */}
+      <div className="hero">
+        <div className="hero-glow" />
+        <img src="/logo.png" alt="FenixGG" className="hero-logo" />
+        <div className="hero-title">
+          <span className="hero-name">FENIXGG</span>
+          <span className="hero-sub">RESEÑAS DE VIDEOJUEGOS</span>
+        </div>
+      </div>
 
       <main className="main">
         {tab === "reviews" && (
