@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import Reviews from "./components/Reviews";
 import Backlog from "./components/Backlog";
 import Login from "./components/Login";
-import GameSearch from "./components/GameSearch";
 import "./App.css";
 
 const supabase = createClient(
@@ -52,8 +51,9 @@ export default function App() {
 
       <header className="header">
         <div className="header-inner">
-          <div className={`logo ${glitch ? "glitch" : ""}`} data-text="GAME VAULT">
-            GAME VAULT
+          <div className={`logo ${glitch ? "glitch" : ""}`} data-text="FENIXGG">
+            <img src="/logo.png" alt="FenixGG" className="logo-img" />
+            FENIXGG
           </div>
           <nav className="nav">
             <button
@@ -88,7 +88,7 @@ export default function App() {
           <Reviews supabase={supabase} isAdmin={isAdmin} />
         )}
         {tab === "backlog" && (
-          <Backlog supabase={supabase} isAdmin={isAdmin} />
+          <Backlog supabase={supabase} isAdmin={isAdmin} onGoToReviews={() => setTab("reviews")} />
         )}
       </main>
 

@@ -7,12 +7,14 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "COMPLETADO" },
 ];
 
-export default function Backlog({ supabase, isAdmin }) {
+export default function Backlog({ supabase, isAdmin, onGoToReviews }) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [notif, setNotif] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [reviewGame, setReviewGame] = useState(null); // juego a reseñar
+  const [reviewForm, setReviewForm] = useState({ rating: 5, review: "" });
   const [form, setForm] = useState({
     name: "", cover: "", year: "", genres: "", status: "pending", notes: "", rawg_id: null,
   });
@@ -46,7 +48,7 @@ export default function Backlog({ supabase, isAdmin }) {
       setShowForm(false);
       setForm({ name: "", cover: "", year: "", genres: "", status: "pending", notes: "", rawg_id: null });
       load();
-      notify("JUEGO AÑADIDO AL BACKLOG");
+      notify("JUEGO AÑADIDO A PENDIENTES");
     }
   };
 
@@ -56,10 +58,33 @@ export default function Backlog({ supabase, isAdmin }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("¿Eliminar este juego del backlog?")) return;
+    if (!confirm("¿Eliminar este juego de pendientes?")) return;
     await supabase.from("backlog").delete().eq("id", id);
     load();
     notify("JUEGO ELIMINADO");
+  };
+
+  const handleWriteReview = (game) => {
+    setReviewGame(game);
+    setReviewForm({ rating: 5, review: "" });
+  };
+
+  const handleSaveReview = async () => {
+    if (!reviewGame) return;
+    const { error } = await supabase.from("reviews").insert([{
+      name: reviewGame.name,
+      cover: reviewGame.cover,
+      year: reviewGame.year,
+      genres: reviewGame.genres,
+      rating: reviewForm.rating,
+      review: reviewForm.review,
+      rawg_id: reviewGame.rawg_id,
+    }]);
+    if (!error) {
+      setReviewGame(null);
+      notify("¡RESEÑA PUBLICADA EN RESEÑAS!");
+      setTimeout(() => onGoToReviews(), 1500);
+    }
   };
 
   const filtered = filterStatus === "all"
@@ -73,10 +98,18 @@ export default function Backlog({ supabase, isAdmin }) {
     completed: games.filter((g) => g.status === "completed").length,
   };
 
+  const StarInput = ({ value, onChange }) => (
+    <div className="star-input">
+      {[1,2,3,4,5].map((s) => (
+        <button key={s} type="button" className={s <= value ? "lit" : ""} onClick={() => onChange(s)}>★</button>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="section-header">
-        <h2 className="section-title">BACKLOG</h2>
+        <h2 className="section-title">PENDIENTES</h2>
         {isAdmin && (
           <button className="btn-primary" onClick={() => setShowForm(true)}>
             + AÑADIR JUEGO
@@ -119,7 +152,7 @@ export default function Backlog({ supabase, isAdmin }) {
       ) : filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">◉</div>
-          <div className="empty-text">BACKLOG VACÍO</div>
+          <div className="empty-text">LISTA VACÍA</div>
         </div>
       ) : (
         <div className="cards-grid">
@@ -147,7 +180,7 @@ export default function Backlog({ supabase, isAdmin }) {
                 )}
               </div>
               {isAdmin && (
-                <div className="card-actions">
+                <div className="card-actions" style={{ flexWrap: "wrap", gap: "0.4rem" }}>
                   <select
                     className="form-select"
                     value={g.status}
@@ -159,6 +192,26 @@ export default function Backlog({ supabase, isAdmin }) {
                     ))}
                   </select>
                   <button className="btn-danger" onClick={() => handleDelete(g.id)}>✕</button>
+                  {g.status === "completed" && (
+                    <button
+                      onClick={() => handleWriteReview(g)}
+                      style={{
+                        width: "100%",
+                        background: "transparent",
+                        border: "1px solid var(--neon3)",
+                        color: "var(--neon3)",
+                        fontFamily: "var(--font-display)",
+                        fontSize: "0.55rem",
+                        letterSpacing: "0.15em",
+                        padding: "0.4rem 0.8rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        clipPath: "polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%)",
+                      }}
+                    >
+                      ✍ ESCRIBIR RESEÑA
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -166,12 +219,12 @@ export default function Backlog({ supabase, isAdmin }) {
         </div>
       )}
 
-      {/* FORM */}
+      {/* FORM AÑADIR */}
       {showForm && (
         <div className="form-overlay">
           <div className="form-panel">
             <div className="form-header">
-              <span className="form-title">◉ AÑADIR AL BACKLOG</span>
+              <span className="form-title">◉ AÑADIR A PENDIENTES</span>
               <button className="form-close" onClick={() => setShowForm(false)}>✕</button>
             </div>
             <div className="form-body">
@@ -217,6 +270,46 @@ export default function Backlog({ supabase, isAdmin }) {
             <div className="form-footer">
               <button className="btn-secondary" onClick={() => setShowForm(false)}>CANCELAR</button>
               <button className="btn-primary" onClick={handleSave}>AÑADIR</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORM RESEÑA RÁPIDA */}
+      {reviewGame && (
+        <div className="form-overlay">
+          <div className="form-panel">
+            <div className="form-header">
+              <span className="form-title">◈ RESEÑAR: {reviewGame.name}</span>
+              <button className="form-close" onClick={() => setReviewGame(null)}>✕</button>
+            </div>
+            <div className="form-body">
+              {reviewGame.cover && (
+                <div style={{ marginBottom: "1rem" }}>
+                  <img
+                    src={reviewGame.cover}
+                    alt="cover"
+                    style={{ width: 80, height: 108, objectFit: "cover", border: "1px solid var(--border)" }}
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">PUNTUACIÓN</label>
+                <StarInput value={reviewForm.rating} onChange={(v) => setReviewForm((f) => ({ ...f, rating: v }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">RESEÑA</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="Escribe tu opinión..."
+                  value={reviewForm.review}
+                  onChange={(e) => setReviewForm((f) => ({ ...f, review: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-footer">
+              <button className="btn-secondary" onClick={() => setReviewGame(null)}>CANCELAR</button>
+              <button className="btn-primary" onClick={handleSaveReview}>PUBLICAR RESEÑA</button>
             </div>
           </div>
         </div>

@@ -345,7 +345,7 @@ body {
   aspect-ratio: 3/4;
   object-fit: cover;
   display: block;
-  filter: saturate(0.9) contrast(1.05);
+  
 }
 
 .card-cover-placeholder {
@@ -748,4 +748,18 @@ body {
 
 @keyframes fadeOut {
   to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* LOGO IMAGE */
+.logo-img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
