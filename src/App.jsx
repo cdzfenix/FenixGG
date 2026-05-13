@@ -46,32 +46,31 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* FONDO WATERMARK */}
       <div className="bg-watermark" />
 
       <header className="header">
         <div className="header-inner">
-          <div className={`logo-text ${glitch ? "glitch" : ""}`} data-text="FENIXGG">
-            FENIXGG
-          </div>
           <nav className="nav">
             <button
               className={`nav-btn ${tab === "reviews" ? "active" : ""}`}
               onClick={() => setTab("reviews")}
             >
-              <span className="nav-icon">◈</span> RESEÑAS
+              <span className="nav-icon">◈</span>
+              <span className="nav-label">RESEÑAS</span>
             </button>
             <button
               className={`nav-btn ${tab === "backlog" ? "active" : ""}`}
               onClick={() => setTab("backlog")}
             >
-              <span className="nav-icon">◉</span> PENDIENTES
+              <span className="nav-icon">◉</span>
+              <span className="nav-label">PENDIENTES</span>
             </button>
           </nav>
           <div className="auth-area">
             {isAdmin ? (
               <div className="admin-badge" onClick={handleLogout} title="Cerrar sesión">
-                <span className="admin-dot" /> ADMIN
+                <span className="admin-dot" />
+                <span className="admin-label">ADMIN</span>
               </div>
             ) : (
               <button className="login-btn" onClick={() => setShowLogin(true)}>
@@ -87,7 +86,7 @@ export default function App() {
         <div className="hero-glow" />
         <img src="/logo.png" alt="FenixGG" className="hero-logo" />
         <div className="hero-title">
-          <span className="hero-name">FENIXGG</span>
+          <span className={`hero-name ${glitch ? "glitch" : ""}`} data-text="FENIXGG">FENIXGG</span>
           <span className="hero-sub">RESEÑAS DE VIDEOJUEGOS</span>
         </div>
       </div>
