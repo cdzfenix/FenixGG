@@ -153,6 +153,11 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
                 <ScoreDisplay score={r.score} />
                 {r.user_id && profiles[r.user_id] && <UserTag profile={profiles[r.user_id]} />}
                 {r.review && <div className="card-review" style={{ marginTop: "0.4rem" }}>{r.review}</div>}
+                <a href={hltbUrl(r.name)} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ display: "inline-block", marginTop: "0.5rem", fontFamily: "var(--font-display)", fontSize: "0.45rem", letterSpacing: "0.1em", color: "var(--neon3)", textDecoration: "none", opacity: 0.8 }}>
+                  ⧉ HOWLONGTOBEAT
+                </a>
               </div>
               {canDelete(r) && (
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>

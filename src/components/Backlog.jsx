@@ -256,6 +256,10 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
                 </div>
                 {g.user_id && profiles[g.user_id] && <UserTag profile={profiles[g.user_id]} />}
                 {g.notes && <div className="card-review" style={{ marginTop: "0.4rem" }}>{g.notes}</div>}
+                <a href={hltbUrl(g.name)} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-block", marginTop: "0.5rem", fontFamily: "var(--font-display)", fontSize: "0.45rem", letterSpacing: "0.1em", color: "var(--neon3)", textDecoration: "none", opacity: 0.8 }}>
+                  ⧉ HOWLONGTOBEAT
+                </a>
               </div>
               {canEdit(g) && (
                 <div className="card-actions" style={{ flexWrap: "wrap", gap: "0.4rem" }}>
