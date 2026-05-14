@@ -173,6 +173,11 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
                 </div>
                 <ScoreDisplay score={r.score} />
                 {r.user_id && profiles[r.user_id] && <UserTag profile={profiles[r.user_id]} />}
+                {r.playtime && (
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.5rem", letterSpacing: "0.1em", color: "var(--text-dim)", marginTop: "0.3rem" }}>
+                    ⏱ <span style={{ color: "var(--text)" }}>{r.playtime}</span>
+                  </div>
+                )}
                 {r.review && <div className="card-review" style={{ marginTop: "0.4rem" }}>{r.review}</div>}
                 <a href={hltbUrl(r.name)} target="_blank" rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
