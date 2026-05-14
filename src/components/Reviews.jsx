@@ -9,7 +9,7 @@ const ScoreDisplay = ({ score }) => {
       <span style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 900, color, textShadow: `0 0 12px ${color}` }}>
         {s.toFixed(1)}
       </span>
-      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", color: "var(--text-dim)" }}>/10</span>
+
     </div>
   );
 };
@@ -45,11 +45,11 @@ const UserTag = ({ profile }) => {
   return (
     <span style={{
       fontFamily: "var(--font-display)",
-      fontSize: "0.5rem",
-      letterSpacing: "0.12em",
+      fontSize: "0.65rem",
+      letterSpacing: "0.1em",
       color: profile.color || "#a855f7",
-      textShadow: `0 0 8px ${profile.color || "#a855f7"}55`,
-      display: "flex", alignItems: "center", gap: "0.3rem"
+      textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
+      display: "flex", alignItems: "center", gap: "0.35rem"
     }}>
       {profile.is_admin && <span style={{ color: "#ff8c00" }}>★</span>}
       {profile.username}
@@ -65,6 +65,8 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
   const [expanded, setExpanded] = useState(null);
   const [notif, setNotif] = useState(null);
   const [filterQuery, setFilterQuery] = useState("");
+  const [filterUser, setFilterUser] = useState(session?.user?.id || null);
+  const [allUsers, setAllUsers] = useState([]);
   const [form, setForm] = useState({ name: "", cover: "", year: "", genres: "", score: 5.0, review: "", playtime: "", rawg_id: null });
 
   const loadProfiles = async (userIds) => {
@@ -74,6 +76,7 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
       const map = {};
       data.forEach(p => map[p.id] = p);
       setProfiles(map);
+      setAllUsers(data);
     }
   };
 
@@ -115,7 +118,9 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
 
   const hltbUrl = (name) => `https://howlongtobeat.com/?q=${encodeURIComponent(name)}`;
 
-  const filtered = reviews.filter(r => r.name.toLowerCase().includes(filterQuery.toLowerCase()));
+  let filtered = reviews;
+  if (filterUser) filtered = filtered.filter(r => r.user_id === filterUser);
+  filtered = filtered.filter(r => r.name.toLowerCase().includes(filterQuery.toLowerCase()));
 
   const canDelete = (r) => isAdmin || (session && r.user_id === session.user.id);
 
@@ -128,9 +133,25 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
         )}
       </div>
 
-      <div className="top-search">
+      <div className="top-search" style={{ flexWrap: "wrap", gap: "0.8rem" }}>
         <input type="text" className="form-input" placeholder="Filtrar reseñas..." value={filterQuery}
-          onChange={(e) => setFilterQuery(e.target.value)} style={{ maxWidth: 280 }} />
+          onChange={(e) => setFilterQuery(e.target.value)} style={{ maxWidth: 240 }} />
+        {allUsers.length > 0 && (
+          <select
+            value={filterUser || ""}
+            onChange={(e) => setFilterUser(e.target.value || null)}
+            style={{
+              background: "var(--bg3)", border: "1px solid var(--border)",
+              color: "var(--text)", fontFamily: "var(--font-body)",
+              fontSize: "0.75rem", padding: "0.4rem 0.8rem", outline: "none", cursor: "pointer",
+            }}
+          >
+            <option value="">TODOS LOS USUARIOS</option>
+            {allUsers.map(u => (
+              <option key={u.id} value={u.id}>{u.username}</option>
+            ))}
+          </select>
+        )}
         <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.15em", color: "var(--text-dim)" }}>
           {filtered.length} TÍTULO{filtered.length !== 1 ? "S" : ""}
         </span>

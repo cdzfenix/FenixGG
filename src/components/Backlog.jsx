@@ -12,11 +12,11 @@ const UserTag = ({ profile }) => {
   return (
     <span style={{
       fontFamily: "var(--font-display)",
-      fontSize: "0.5rem",
-      letterSpacing: "0.12em",
+      fontSize: "0.65rem",
+      letterSpacing: "0.1em",
       color: profile.color || "#a855f7",
-      textShadow: `0 0 8px ${profile.color || "#a855f7"}55`,
-      display: "flex", alignItems: "center", gap: "0.3rem"
+      textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
+      display: "flex", alignItems: "center", gap: "0.35rem"
     }}>
       {profile.is_admin && <span style={{ color: "#ff8c00" }}>★</span>}
       {profile.username}
