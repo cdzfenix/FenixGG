@@ -1,85 +1,60 @@
 import { useState } from "react";
 
-export default function Login({ onLogin, onClose }) {
+export default function Login({ supabase, onClose }) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    const ok = onLogin(password);
-    if (!ok) {
-      setError(true);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      setTimeout(() => setError(false), 2000);
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      setError("Email o contraseña incorrectos");
+    } else {
+      onClose();
     }
   };
 
   return (
     <div className="form-overlay" onClick={onClose}>
-      <div
-        className={`form-panel ${shake ? "shake" : ""}`}
-        style={{ maxWidth: 380 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="form-panel" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
         <div className="form-header">
-          <span className="form-title">◈ ACCESO ADMIN</span>
+          <span className="form-title">◈ ACCESO</span>
           <button className="form-close" onClick={onClose}>✕</button>
         </div>
         <div className="form-body">
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "0.55rem",
-              letterSpacing: "0.2em",
-              color: "var(--text-dim)",
-              marginBottom: "1.5rem",
-              lineHeight: 1.8,
-            }}
-          >
-            ZONA RESTRINGIDA — Solo el administrador puede crear y editar contenido.
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.5rem", letterSpacing: "0.2em", color: "var(--text-dim)", marginBottom: "1.5rem", lineHeight: 1.8 }}>
+            ZONA RESTRINGIDA — Acceso solo por invitación.
+          </div>
+          <div className="form-group">
+            <label className="form-label">EMAIL</label>
+            <input type="email" className="form-input" value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              autoFocus />
           </div>
           <div className="form-group">
             <label className="form-label">CONTRASEÑA</label>
-            <input
-              type="password"
-              className="form-input"
-              value={password}
+            <input type="password" className="form-input" value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              autoFocus
-              style={error ? { borderColor: "var(--neon2)", boxShadow: "0 0 10px rgba(255,45,120,0.3)" } : {}}
-            />
-            {error && (
-              <div
-                style={{
-                  color: "var(--neon2)",
-                  fontFamily: "var(--font-display)",
-                  fontSize: "0.55rem",
-                  letterSpacing: "0.15em",
-                  marginTop: "0.5rem",
-                }}
-              >
-                ✕ ACCESO DENEGADO
-              </div>
-            )}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
           </div>
+          {error && (
+            <div style={{ color: "var(--neon2)", fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.15em" }}>
+              ✕ {error}
+            </div>
+          )}
         </div>
         <div className="form-footer">
           <button className="btn-secondary" onClick={onClose}>CANCELAR</button>
-          <button className="btn-primary" onClick={handleSubmit}>ENTRAR</button>
+          <button className="btn-primary" onClick={handleLogin} disabled={loading}>
+            {loading ? "..." : "ENTRAR"}
+          </button>
         </div>
       </div>
-      <style>{`
-        .shake { animation: shake 0.4s ease; }
-        @keyframes shake {
-          0%,100% { transform: translateX(0); }
-          20%      { transform: translateX(-8px); }
-          40%      { transform: translateX(8px); }
-          60%      { transform: translateX(-6px); }
-          80%      { transform: translateX(6px); }
-        }
-      `}</style>
     </div>
   );
 }

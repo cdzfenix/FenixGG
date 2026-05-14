@@ -5,44 +5,49 @@ import Backlog from "./components/Backlog";
 import Login from "./components/Login";
 import "./App.css";
 
-const supabase = createClient(
+export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "changeme123";
-
 export default function App() {
   const [tab, setTab] = useState("reviews");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [glitch, setGlitch] = useState(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("gv_admin");
-    if (stored === "true") setIsAdmin(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) loadProfile(session.user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) loadProfile(session.user.id);
+      else setProfile(null);
+    });
 
     const interval = setInterval(() => {
       setGlitch(true);
       setTimeout(() => setGlitch(false), 200);
     }, 8000);
-    return () => clearInterval(interval);
+
+    return () => { subscription.unsubscribe(); clearInterval(interval); };
   }, []);
 
-  const handleLogin = (password) => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      sessionStorage.setItem("gv_admin", "true");
-      setShowLogin(false);
-      return true;
-    }
-    return false;
+  const loadProfile = async (userId) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    setProfile(data);
   };
 
-  const handleLogout = () => {
-    setIsAdmin(false);
-    sessionStorage.removeItem("gv_admin");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
   };
+
+  const isAdmin = profile?.is_admin === true;
 
   return (
     <div className="app">
@@ -51,37 +56,33 @@ export default function App() {
       <header className="header">
         <div className="header-inner">
           <nav className="nav">
-            <button
-              className={`nav-btn ${tab === "reviews" ? "active" : ""}`}
-              onClick={() => setTab("reviews")}
-            >
+            <button className={`nav-btn ${tab === "reviews" ? "active" : ""}`} onClick={() => setTab("reviews")}>
               <span className="nav-icon">◈</span>
               <span className="nav-label">RESEÑAS</span>
             </button>
-            <button
-              className={`nav-btn ${tab === "backlog" ? "active" : ""}`}
-              onClick={() => setTab("backlog")}
-            >
+            <button className={`nav-btn ${tab === "backlog" ? "active" : ""}`} onClick={() => setTab("backlog")}>
               <span className="nav-icon">◉</span>
               <span className="nav-label">PENDIENTES</span>
             </button>
           </nav>
           <div className="auth-area">
-            {isAdmin ? (
-              <div className="admin-badge" onClick={handleLogout} title="Cerrar sesión">
-                <span className="admin-dot" />
-                <span className="admin-label">ADMIN</span>
+            {session && profile ? (
+              <div className="user-menu">
+                <span className="user-chip" style={{ color: profile.color || "#a855f7" }}>
+                  {isAdmin && <span className="admin-dot" />}
+                  {profile.username}
+                </span>
+                <button className="btn-secondary" onClick={handleLogout} style={{ fontSize: "0.5rem", padding: "0.3rem 0.7rem" }}>
+                  SALIR
+                </button>
               </div>
             ) : (
-              <button className="login-btn" onClick={() => setShowLogin(true)}>
-                ACCEDER
-              </button>
+              <button className="login-btn" onClick={() => setShowLogin(true)}>ACCEDER</button>
             )}
           </div>
         </div>
       </header>
 
-      {/* HERO BANNER */}
       <div className="hero">
         <div className="hero-glow" />
         <img src="/logo.png" alt="FenixGG" className="hero-logo" />
@@ -92,17 +93,11 @@ export default function App() {
       </div>
 
       <main className="main">
-        {tab === "reviews" && (
-          <Reviews supabase={supabase} isAdmin={isAdmin} />
-        )}
-        {tab === "backlog" && (
-          <Backlog supabase={supabase} isAdmin={isAdmin} onGoToReviews={() => setTab("reviews")} />
-        )}
+        {tab === "reviews" && <Reviews supabase={supabase} session={session} profile={profile} isAdmin={isAdmin} />}
+        {tab === "backlog" && <Backlog supabase={supabase} session={session} profile={profile} isAdmin={isAdmin} onGoToReviews={() => setTab("reviews")} />}
       </main>
 
-      {showLogin && (
-        <Login onLogin={handleLogin} onClose={() => setShowLogin(false)} />
-      )}
+      {showLogin && <Login supabase={supabase} onClose={() => setShowLogin(false)} />}
     </div>
   );
 }
