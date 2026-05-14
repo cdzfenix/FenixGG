@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import Reviews from "./components/Reviews";
 import Backlog from "./components/Backlog";
 import Login from "./components/Login";
+import ResetPassword from "./components/ResetPassword";
 import "./App.css";
 
 export const supabase = createClient(
@@ -15,6 +16,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const [glitch, setGlitch] = useState(false);
 
   useEffect(() => {
@@ -23,10 +25,15 @@ export default function App() {
       if (session) loadProfile(session.user.id);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (session) loadProfile(session.user.id);
       else setProfile(null);
+
+      // Detectar cuando el usuario llega desde el enlace de recuperación
+      if (event === "PASSWORD_RECOVERY") {
+        setShowReset(true);
+      }
     });
 
     const interval = setInterval(() => {
@@ -98,6 +105,7 @@ export default function App() {
       </main>
 
       {showLogin && <Login supabase={supabase} onClose={() => setShowLogin(false)} />}
+      {showReset && <ResetPassword supabase={supabase} onDone={() => setShowReset(false)} />}
     </div>
   );
 }
