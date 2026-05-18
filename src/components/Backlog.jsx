@@ -4,7 +4,7 @@ import GameSearch from "./GameSearch";
 const STATUS_OPTIONS = [
   { value: "pending", label: "PENDIENTE" },
   { value: "playing", label: "JUGANDO" },
-  { value: "completed", label: "COMPLETADO" },
+  { value: "completed", label: "COMPLETADO" }, // solo visible en cards existentes
 ];
 
 const UserTag = ({ profile }) => {
@@ -118,7 +118,10 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
       playtime: reviewForm.playtime, rawg_id: reviewGame.rawg_id, user_id: session.user.id,
     }]);
     if (!error) {
+      // Eliminar del backlog al publicar reseña
+      await supabase.from("backlog").delete().eq("id", reviewGame.id);
       setReviewGame(null);
+      load();
       notify("¡RESEÑA PUBLICADA!");
       setTimeout(() => onGoToReviews(), 1500);
     }
@@ -269,7 +272,7 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
                     onChange={(e) => handleStatusChange(g.id, e.target.value)}
                     style={{ fontSize: "0.7rem", padding: "0.3rem 0.5rem", flex: 1 }}
                   >
-                    {STATUS_OPTIONS.map((s) => (
+                    {STATUS_OPTIONS.filter(s => s.value !== "completed").map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
