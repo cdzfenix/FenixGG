@@ -9,33 +9,23 @@ const ScoreDisplay = ({ score }) => {
       <span style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 900, color, textShadow: `0 0 12px ${color}` }}>
         {s.toFixed(1)}
       </span>
-
     </div>
   );
 };
 
 const ScoreInput = ({ value, onChange }) => {
   const [input, setInput] = useState(value?.toString() || "5.0");
-
   const handleChange = (e) => {
     const val = e.target.value.replace(",", ".");
     setInput(val);
     const num = parseFloat(val);
     if (!isNaN(num) && num >= 0 && num <= 10) onChange(Math.round(num * 10) / 10);
   };
-
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-      <input
-        type="number" min="0" max="10" step="0.5"
-        className="form-input"
-        style={{ width: 90 }}
-        value={input}
-        onChange={handleChange}
-      />
-      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", color: "var(--text-dim)" }}>
-        (0.0 — 10.0)
-      </span>
+      <input type="number" min="0" max="10" step="0.5" className="form-input"
+        style={{ width: 90 }} value={input} onChange={handleChange} />
+      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", color: "var(--text-dim)" }}>(0.0 — 10.0)</span>
     </div>
   );
 };
@@ -44,11 +34,8 @@ const UserTag = ({ profile }) => {
   if (!profile) return null;
   return (
     <span style={{
-      fontFamily: "var(--font-display)",
-      fontSize: "0.65rem",
-      letterSpacing: "0.1em",
-      color: profile.color || "#a855f7",
-      textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
+      fontFamily: "var(--font-display)", fontSize: "0.65rem", letterSpacing: "0.1em",
+      color: profile.color || "#a855f7", textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
       display: "flex", alignItems: "center", gap: "0.35rem"
     }}>
       {profile.is_admin && <span style={{ color: "#ff8c00" }}>★</span>}
@@ -57,17 +44,20 @@ const UserTag = ({ profile }) => {
   );
 };
 
+const EMPTY_FORM = { name: "", cover: "", year: "", genres: "", score: 5.0, review: "", playtime: "", rawg_id: null };
+
 export default function Reviews({ supabase, session, profile, isAdmin }) {
   const [reviews, setReviews] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null); // null = nueva reseña, id = editando
   const [expanded, setExpanded] = useState(null);
   const [notif, setNotif] = useState(null);
   const [filterQuery, setFilterQuery] = useState("");
   const [filterUser, setFilterUser] = useState(session?.user?.id || null);
   const [allUsers, setAllUsers] = useState([]);
-  const [form, setForm] = useState({ name: "", cover: "", year: "", genres: "", score: 5.0, review: "", playtime: "", rawg_id: null });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const loadProfiles = async (userIds) => {
     if (!userIds.length) return;
@@ -93,18 +83,52 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
 
   const notify = (msg) => { setNotif(msg); setTimeout(() => setNotif(null), 3000); };
 
+  const openNew = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  };
+
+  const openEdit = (r, e) => {
+    e.stopPropagation();
+    setEditingId(r.id);
+    setForm({
+      name: r.name || "", cover: r.cover || "", year: r.year || "",
+      genres: r.genres || "", score: r.score || 5.0, review: r.review || "",
+      playtime: r.playtime || "", rawg_id: r.rawg_id || null,
+    });
+    setShowForm(true);
+  };
+
   const handleSave = async () => {
     if (!form.name.trim() || !session) return;
-    const { error } = await supabase.from("reviews").insert([{
-      name: form.name, cover: form.cover, year: form.year, genres: form.genres,
-      score: form.score, review: form.review, playtime: form.playtime,
-      rawg_id: form.rawg_id, user_id: session.user.id,
-    }]);
-    if (!error) {
-      setShowForm(false);
-      setForm({ name: "", cover: "", year: "", genres: "", score: 5.0, review: "", playtime: "", rawg_id: null });
-      load();
-      notify("RESEÑA GUARDADA");
+    if (editingId) {
+      // Editar reseña existente
+      const { error } = await supabase.from("reviews").update({
+        name: form.name, cover: form.cover, year: form.year, genres: form.genres,
+        score: form.score, review: form.review, playtime: form.playtime, rawg_id: form.rawg_id,
+      }).eq("id", editingId);
+      if (!error) {
+        setShowForm(false);
+        setForm(EMPTY_FORM);
+        setEditingId(null);
+        if (expanded?.id === editingId) setExpanded(null);
+        load();
+        notify("RESEÑA ACTUALIZADA");
+      }
+    } else {
+      // Nueva reseña
+      const { error } = await supabase.from("reviews").insert([{
+        name: form.name, cover: form.cover, year: form.year, genres: form.genres,
+        score: form.score, review: form.review, playtime: form.playtime,
+        rawg_id: form.rawg_id, user_id: session.user.id,
+      }]);
+      if (!error) {
+        setShowForm(false);
+        setForm(EMPTY_FORM);
+        load();
+        notify("RESEÑA GUARDADA");
+      }
     }
   };
 
@@ -122,34 +146,23 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
   if (filterUser) filtered = filtered.filter(r => r.user_id === filterUser);
   filtered = filtered.filter(r => r.name.toLowerCase().includes(filterQuery.toLowerCase()));
 
-  const canDelete = (r) => isAdmin || (session && r.user_id === session.user.id);
+  const canEdit = (r) => isAdmin || (session && r.user_id === session.user.id);
 
   return (
     <>
       <div className="section-header">
         <h2 className="section-title">RESEÑAS DE VIDEOJUEGOS</h2>
-        {session && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>+ AÑADIR RESEÑA</button>
-        )}
+        {session && <button className="btn-primary" onClick={openNew}>+ AÑADIR RESEÑA</button>}
       </div>
 
       <div className="top-search" style={{ flexWrap: "wrap", gap: "0.8rem" }}>
         <input type="text" className="form-input" placeholder="Filtrar reseñas..." value={filterQuery}
           onChange={(e) => setFilterQuery(e.target.value)} style={{ maxWidth: 240 }} />
         {allUsers.length > 0 && (
-          <select
-            value={filterUser || ""}
-            onChange={(e) => setFilterUser(e.target.value || null)}
-            style={{
-              background: "var(--bg3)", border: "1px solid var(--border)",
-              color: "var(--text)", fontFamily: "var(--font-body)",
-              fontSize: "0.75rem", padding: "0.4rem 0.8rem", outline: "none", cursor: "pointer",
-            }}
-          >
+          <select value={filterUser || ""} onChange={(e) => setFilterUser(e.target.value || null)}
+            style={{ background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.75rem", padding: "0.4rem 0.8rem", outline: "none", cursor: "pointer" }}>
             <option value="">TODOS LOS USUARIOS</option>
-            {allUsers.map(u => (
-              <option key={u.id} value={u.id}>{u.username}</option>
-            ))}
+            {allUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
           </select>
         )}
         <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.15em", color: "var(--text-dim)" }}>
@@ -185,8 +198,9 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
                   ⧉ HOWLONGTOBEAT
                 </a>
               </div>
-              {canDelete(r) && (
+              {canEdit(r) && (
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="btn-primary" style={{ fontSize: "0.5rem", padding: "0.3rem 0.7rem" }} onClick={(e) => openEdit(r, e)}>EDITAR</button>
                   <button className="btn-danger" onClick={(e) => handleDelete(r.id, r.user_id, e)}>ELIMINAR</button>
                 </div>
               )}
@@ -199,11 +213,17 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
       {expanded && (
         <div className="card-expanded-overlay" onClick={() => setExpanded(null)}>
           <div className="card-expanded" onClick={(e) => e.stopPropagation()}>
-            {expanded.cover
-              ? <img src={expanded.cover} alt={expanded.name} className="card-expanded-cover" />
-              : <div className="card-expanded-cover-placeholder">🎮</div>}
+            {expanded.cover ? <img src={expanded.cover} alt={expanded.name} className="card-expanded-cover" /> : <div className="card-expanded-cover-placeholder">🎮</div>}
             <div className="card-expanded-body">
-              <button onClick={() => setExpanded(null)} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", alignSelf: "flex-end", fontSize: "1.2rem" }}>✕</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {canEdit(expanded) && (
+                  <button className="btn-primary" style={{ fontSize: "0.5rem", padding: "0.3rem 0.8rem" }}
+                    onClick={(e) => { setExpanded(null); openEdit(expanded, e); }}>
+                    EDITAR
+                  </button>
+                )}
+                <button onClick={() => setExpanded(null)} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "1.2rem", marginLeft: "auto" }}>✕</button>
+              </div>
               <div className="card-expanded-title">{expanded.name}</div>
               <div className="card-meta">{expanded.year}{expanded.year && expanded.genres && " · "}{expanded.genres}</div>
               <ScoreDisplay score={expanded.score} />
@@ -224,13 +244,13 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
         </div>
       )}
 
-      {/* FORM */}
+      {/* FORM NUEVA / EDITAR */}
       {showForm && (
         <div className="form-overlay">
           <div className="form-panel">
             <div className="form-header">
-              <span className="form-title">◈ NUEVA RESEÑA</span>
-              <button className="form-close" onClick={() => setShowForm(false)}>✕</button>
+              <span className="form-title">{editingId ? "◈ EDITAR RESEÑA" : "◈ NUEVA RESEÑA"}</span>
+              <button className="form-close" onClick={() => { setShowForm(false); setEditingId(null); }}>✕</button>
             </div>
             <div className="form-body">
               <div className="form-group">
@@ -266,8 +286,8 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
               </div>
             </div>
             <div className="form-footer">
-              <button className="btn-secondary" onClick={() => setShowForm(false)}>CANCELAR</button>
-              <button className="btn-primary" onClick={handleSave}>GUARDAR</button>
+              <button className="btn-secondary" onClick={() => { setShowForm(false); setEditingId(null); }}>CANCELAR</button>
+              <button className="btn-primary" onClick={handleSave}>{editingId ? "ACTUALIZAR" : "GUARDAR"}</button>
             </div>
           </div>
         </div>
