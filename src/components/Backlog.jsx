@@ -188,7 +188,6 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
           {[
             { key: "pending", label: "PENDIENTES" },
             { key: "playing", label: "JUGANDO" },
-            { key: "completed", label: "COMPLETADOS" },
           ].map((f) => (
             <button
               key={f.key}
