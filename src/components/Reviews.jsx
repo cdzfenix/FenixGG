@@ -57,6 +57,7 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
   const [filterQuery, setFilterQuery] = useState("");
   const [filterUser, setFilterUser] = useState(session?.user?.id || null);
   const [allUsers, setAllUsers] = useState([]);
+  const [sortByScore, setSortByScore] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
 
   const loadProfiles = async (userIds) => {
@@ -80,6 +81,10 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    setFilterUser(session?.user?.id || null);
+  }, [session]);
 
   const notify = (msg) => { setNotif(msg); setTimeout(() => setNotif(null), 3000); };
 
@@ -145,6 +150,7 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
   let filtered = reviews;
   if (filterUser) filtered = filtered.filter(r => r.user_id === filterUser);
   filtered = filtered.filter(r => r.name.toLowerCase().includes(filterQuery.toLowerCase()));
+  if (sortByScore) filtered = [...filtered].sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0));
 
   const canEdit = (r) => isAdmin || (session && r.user_id === session.user.id);
 
@@ -165,6 +171,18 @@ export default function Reviews({ supabase, session, profile, isAdmin }) {
             {allUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
           </select>
         )}
+        <button
+          onClick={() => setSortByScore(s => !s)}
+          style={{
+            background: sortByScore ? "var(--neon-dim)" : "transparent",
+            border: `1px solid ${sortByScore ? "var(--neon)" : "var(--border)"}`,
+            color: sortByScore ? "var(--neon)" : "var(--text-dim)",
+            fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.12em",
+            padding: "0.4rem 0.8rem", cursor: "pointer", transition: "all 0.2s",
+            clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
+          }}>
+          ↓ NOTA
+        </button>
         <span style={{ fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.15em", color: "var(--text-dim)" }}>
           {filtered.length} TÍTULO{filtered.length !== 1 ? "S" : ""}
         </span>

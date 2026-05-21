@@ -4,18 +4,15 @@ import GameSearch from "./GameSearch";
 const STATUS_OPTIONS = [
   { value: "pending", label: "PENDIENTE" },
   { value: "playing", label: "JUGANDO" },
-  { value: "completed", label: "COMPLETADO" }, // solo visible en cards existentes
+  { value: "completed", label: "COMPLETADO" },
 ];
 
 const UserTag = ({ profile }) => {
   if (!profile) return null;
   return (
     <span style={{
-      fontFamily: "var(--font-display)",
-      fontSize: "0.65rem",
-      letterSpacing: "0.1em",
-      color: profile.color || "#a855f7",
-      textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
+      fontFamily: "var(--font-display)", fontSize: "0.65rem", letterSpacing: "0.1em",
+      color: profile.color || "#a855f7", textShadow: `0 0 10px ${profile.color || "#a855f7"}88`,
       display: "flex", alignItems: "center", gap: "0.35rem"
     }}>
       {profile.is_admin && <span style={{ color: "#ff8c00" }}>★</span>}
@@ -26,19 +23,30 @@ const UserTag = ({ profile }) => {
 
 const ScoreInput = ({ value, onChange }) => {
   const [input, setInput] = useState(value?.toString() || "5.0");
-
   const handleChange = (e) => {
     const val = e.target.value.replace(",", ".");
     setInput(val);
     const num = parseFloat(val);
     if (!isNaN(num) && num >= 0 && num <= 10) onChange(Math.round(num * 10) / 10);
   };
-
   return (
     <input type="number" min="0" max="10" step="0.5" className="form-input"
       value={input} onChange={handleChange} />
   );
 };
+
+const filterBtnStyle = (active) => ({
+  background: active ? "var(--neon-dim)" : "transparent",
+  border: `1px solid ${active ? "var(--neon)" : "var(--border)"}`,
+  color: active ? "var(--neon)" : "var(--text-dim)",
+  fontFamily: "var(--font-display)",
+  fontSize: "0.55rem",
+  letterSpacing: "0.15em",
+  padding: "0.4rem 1rem",
+  cursor: "pointer",
+  transition: "all 0.2s",
+  clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
+});
 
 export default function Backlog({ supabase, session, profile, isAdmin, onGoToReviews }) {
   const [games, setGames] = useState([]);
@@ -46,14 +54,12 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [notif, setNotif] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("mylist");
-  const [filterUser, setFilterUser] = useState(null);
+  const [filterStatus, setFilterStatus] = useState(session ? "mylist" : "all");
+  const [filterUser, setFilterUser] = useState(session?.user?.id || null);
   const [allUsers, setAllUsers] = useState([]);
   const [reviewGame, setReviewGame] = useState(null);
   const [reviewForm, setReviewForm] = useState({ score: 5.0, review: "", playtime: "" });
-  const [form, setForm] = useState({
-    name: "", cover: "", year: "", genres: "", status: "pending", notes: "", rawg_id: null,
-  });
+  const [form, setForm] = useState({ name: "", cover: "", year: "", genres: "", status: "pending", notes: "", rawg_id: null });
 
   const loadProfiles = async (userIds) => {
     if (!userIds.length) return;
@@ -77,6 +83,17 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
 
   useEffect(() => { load(); }, []);
 
+  // Actualizar filtros cuando cambia la sesión
+  useEffect(() => {
+    if (session) {
+      setFilterStatus("mylist");
+      setFilterUser(session.user.id);
+    } else {
+      setFilterStatus("all");
+      setFilterUser(null);
+    }
+  }, [session]);
+
   const notify = (msg) => { setNotif(msg); setTimeout(() => setNotif(null), 3000); };
 
   const handleSave = async () => {
@@ -93,8 +110,8 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
     }
   };
 
-  const handleStatusChange = async (id, status) => {
-    await supabase.from("backlog").update({ status }).eq("id", id);
+  const handleStatusChange = async (id, newStatus) => {
+    await supabase.from("backlog").update({ status: newStatus }).eq("id", id);
     load();
   };
 
@@ -118,7 +135,6 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
       playtime: reviewForm.playtime, rawg_id: reviewGame.rawg_id, user_id: session.user.id,
     }]);
     if (!error) {
-      // Eliminar del backlog al publicar reseña
       await supabase.from("backlog").delete().eq("id", reviewGame.id);
       setReviewGame(null);
       load();
@@ -129,19 +145,18 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
 
   const hltbUrl = (name) => `https://howlongtobeat.com/?q=${encodeURIComponent(name)}`;
 
-  let filtered = games;
-  
+  // Filtrado
+  let filtered = [...games];
   if (filterStatus === "mylist" && session) {
-    filtered = games.filter(g => g.user_id === session.user.id);
+    filtered = filtered.filter(g => g.user_id === session.user.id);
   } else if (filterStatus === "pending") {
-    filtered = games.filter(g => g.status === "pending");
+    filtered = filtered.filter(g => g.status === "pending");
   } else if (filterStatus === "playing") {
-    filtered = games.filter(g => g.status === "playing");
-  } else if (filterStatus === "completed") {
-    filtered = games.filter(g => g.status === "completed");
+    filtered = filtered.filter(g => g.status === "playing");
   }
+  // "all" no filtra por status
 
-  if (filterUser && filterUser !== "all") {
+  if (filterUser) {
     filtered = filtered.filter(g => g.user_id === filterUser);
   }
 
@@ -149,7 +164,6 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
     mylist: session ? games.filter(g => g.user_id === session.user.id).length : 0,
     pending: games.filter(g => g.status === "pending").length,
     playing: games.filter(g => g.status === "playing").length,
-    completed: games.filter(g => g.status === "completed").length,
   };
 
   const canEdit = (g) => isAdmin || (session && g.user_id === session.user.id);
@@ -158,53 +172,28 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
     <>
       <div className="section-header">
         <h2 className="section-title">PENDIENTES</h2>
-        {session && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>+ AÑADIR JUEGO</button>
-        )}
+        {session && <button className="btn-primary" onClick={() => setShowForm(true)}>+ AÑADIR JUEGO</button>}
       </div>
 
       {/* FILTROS */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
           {session && (
-            <button
-              onClick={() => setFilterStatus("mylist")}
-              style={{
-                background: filterStatus === "mylist" ? "var(--neon-dim)" : "transparent",
-                border: `1px solid ${filterStatus === "mylist" ? "var(--neon)" : "var(--border)"}`,
-                color: filterStatus === "mylist" ? "var(--neon)" : "var(--text-dim)",
-                fontFamily: "var(--font-display)",
-                fontSize: "0.55rem",
-                letterSpacing: "0.15em",
-                padding: "0.4rem 1rem",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
-              }}
-            >
+            <button onClick={() => { setFilterStatus("mylist"); setFilterUser(session.user.id); }}
+              style={filterBtnStyle(filterStatus === "mylist")}>
               MI LISTA ({counts.mylist})
             </button>
           )}
+          <button onClick={() => { setFilterStatus("all"); setFilterUser(null); }}
+            style={filterBtnStyle(filterStatus === "all")}>
+            TODOS
+          </button>
           {[
             { key: "pending", label: "PENDIENTES" },
             { key: "playing", label: "JUGANDO" },
           ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilterStatus(f.key)}
-              style={{
-                background: filterStatus === f.key ? "var(--neon-dim)" : "transparent",
-                border: `1px solid ${filterStatus === f.key ? "var(--neon)" : "var(--border)"}`,
-                color: filterStatus === f.key ? "var(--neon)" : "var(--text-dim)",
-                fontFamily: "var(--font-display)",
-                fontSize: "0.55rem",
-                letterSpacing: "0.15em",
-                padding: "0.4rem 1rem",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
-              }}
-            >
+            <button key={f.key} onClick={() => { setFilterStatus(f.key); setFilterUser(null); }}
+              style={filterBtnStyle(filterStatus === f.key)}>
               {f.label} ({counts[f.key]})
             </button>
           ))}
@@ -212,25 +201,11 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
 
         {/* FILTRO USUARIO */}
         {allUsers.length > 0 && (
-          <select
-            value={filterUser || ""}
-            onChange={(e) => setFilterUser(e.target.value || null)}
-            style={{
-              background: "var(--bg3)",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
-              fontFamily: "var(--font-body)",
-              fontSize: "0.75rem",
-              padding: "0.4rem 0.8rem",
-              outline: "none",
-              cursor: "pointer",
-            }}
-          >
+          <select value={filterUser || ""}
+            onChange={(e) => { setFilterUser(e.target.value || null); setFilterStatus("all"); }}
+            style={{ background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.75rem", padding: "0.4rem 0.8rem", outline: "none", cursor: "pointer" }}>
             <option value="">TODOS LOS USUARIOS</option>
-            <option value="all">TODOS LOS USUARIOS</option>
-            {allUsers.map(u => (
-              <option key={u.id} value={u.id}>{u.username}</option>
-            ))}
+            {allUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
           </select>
         )}
       </div>
@@ -265,34 +240,17 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
               </div>
               {canEdit(g) && (
                 <div className="card-actions" style={{ flexWrap: "wrap", gap: "0.4rem" }}>
-                  <select
-                    className="form-select"
-                    value={g.status}
+                  <select className="form-select" value={g.status}
                     onChange={(e) => handleStatusChange(g.id, e.target.value)}
-                    style={{ fontSize: "0.7rem", padding: "0.3rem 0.5rem", flex: 1 }}
-                  >
-                    {STATUS_OPTIONS.filter(s => s.value !== "completed").map((s) => (
+                    style={{ fontSize: "0.7rem", padding: "0.3rem 0.5rem", flex: 1 }}>
+                    {STATUS_OPTIONS.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
                   <button className="btn-danger" onClick={() => handleDelete(g.id)}>✕</button>
                   {g.status === "completed" && session && (
-                    <button
-                      onClick={() => handleWriteReview(g)}
-                      style={{
-                        width: "100%",
-                        background: "transparent",
-                        border: "1px solid var(--neon3)",
-                        color: "var(--neon3)",
-                        fontFamily: "var(--font-display)",
-                        fontSize: "0.55rem",
-                        letterSpacing: "0.15em",
-                        padding: "0.4rem 0.8rem",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        clipPath: "polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%)",
-                      }}
-                    >
+                    <button onClick={() => handleWriteReview(g)}
+                      style={{ width: "100%", background: "transparent", border: "1px solid var(--neon3)", color: "var(--neon3)", fontFamily: "var(--font-display)", fontSize: "0.55rem", letterSpacing: "0.15em", padding: "0.4rem 0.8rem", cursor: "pointer", transition: "all 0.2s", clipPath: "polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%)" }}>
                       ✍ ESCRIBIR RESEÑA
                     </button>
                   )}
@@ -323,11 +281,8 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
               )}
               <div className="form-group">
                 <label className="form-label">ESTADO</label>
-                <select
-                  className="form-select"
-                  value={form.status}
-                  onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))}
-                >
+                <select className="form-select" value={form.status}
+                  onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))}>
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -335,13 +290,9 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
               </div>
               <div className="form-group">
                 <label className="form-label">NOTAS (OPCIONAL)</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="¿Por qué quieres jugarlo? ¿Algo que recordar?"
-                  value={form.notes}
-                  onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-                  style={{ minHeight: 80 }}
-                />
+                <textarea className="form-textarea" placeholder="¿Por qué quieres jugarlo? ¿Algo que recordar?"
+                  value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+                  style={{ minHeight: 80 }} />
               </div>
             </div>
             <div className="form-footer">
@@ -352,7 +303,7 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
         </div>
       )}
 
-      {/* FORM RESEÑA RÁPIDA */}
+      {/* FORM RESEÑA */}
       {reviewGame && (
         <div className="form-overlay">
           <div className="form-panel">
@@ -385,12 +336,8 @@ export default function Backlog({ supabase, session, profile, isAdmin, onGoToRev
               )}
               <div className="form-group">
                 <label className="form-label">RESEÑA</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Escribe tu opinión..."
-                  value={reviewForm.review}
-                  onChange={(e) => setReviewForm(f => ({ ...f, review: e.target.value }))}
-                />
+                <textarea className="form-textarea" placeholder="Escribe tu opinión..." value={reviewForm.review}
+                  onChange={(e) => setReviewForm(f => ({ ...f, review: e.target.value }))} />
               </div>
             </div>
             <div className="form-footer">
