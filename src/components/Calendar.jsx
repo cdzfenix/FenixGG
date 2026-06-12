@@ -150,7 +150,7 @@ export default function Calendar({ supabase, session, profile }) {
                 key={idx}
                 onClick={() => day && setSelectedDay(isSelected ? null : day)}
                 style={{
-                  minHeight: 72,
+                  minHeight: 140,
                   padding: "0.4rem",
                   borderRight: "1px solid var(--border)",
                   borderBottom: "1px solid var(--border)",
@@ -183,16 +183,16 @@ export default function Calendar({ supabase, session, profile }) {
                         r.cover ? (
                           <img key={i} src={r.cover} alt={r.name}
                             title={r.name}
-                            style={{ width: 24, height: 32, objectFit: "cover", border: `1px solid ${profiles[r.user_id]?.color || "var(--border)"}` }} />
+                            style={{ width: 72, height: 96, objectFit: "cover", border: `2px solid ${profiles[r.user_id]?.color || "var(--border)"}` }} />
                         ) : (
                           <div key={i} title={r.name}
-                            style={{ width: 24, height: 32, background: "var(--bg3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", border: `1px solid ${profiles[r.user_id]?.color || "var(--border)"}` }}>
+                            style={{ width: 72, height: 96, background: "var(--bg3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", border: `2px solid ${profiles[r.user_id]?.color || "var(--border)"}` }}>
                             🎮
                           </div>
                         )
                       ))}
                       {dayReviews.length > 4 && (
-                        <div style={{ width: 24, height: 32, background: "var(--bg3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: "0.4rem", color: "var(--text-dim)" }}>
+                        <div style={{ width: 72, height: 96, background: "var(--bg3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: "0.6rem", color: "var(--text-dim)" }}>
                           +{dayReviews.length - 4}
                         </div>
                       )}
