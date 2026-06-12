@@ -4,6 +4,7 @@ import Reviews from "./components/Reviews";
 import Backlog from "./components/Backlog";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
+import Calendar from "./components/Calendar";
 import "./App.css";
 
 export const supabase = createClient(
@@ -71,6 +72,10 @@ export default function App() {
               <span className="nav-icon">◉</span>
               <span className="nav-label">PENDIENTES</span>
             </button>
+            <button className={`nav-btn ${tab === "calendar" ? "active" : ""}`} onClick={() => setTab("calendar")}>
+              <span className="nav-icon">◻</span>
+              <span className="nav-label">CALENDARIO</span>
+            </button>
           </nav>
           <div className="auth-area">
             {session && profile ? (
@@ -102,6 +107,7 @@ export default function App() {
       <main className="main">
         {tab === "reviews" && <Reviews supabase={supabase} session={session} profile={profile} isAdmin={isAdmin} />}
         {tab === "backlog" && <Backlog supabase={supabase} session={session} profile={profile} isAdmin={isAdmin} onGoToReviews={() => setTab("reviews")} />}
+        {tab === "calendar" && <Calendar supabase={supabase} session={session} profile={profile} />}
       </main>
 
       {showLogin && <Login supabase={supabase} onClose={() => setShowLogin(false)} />}
